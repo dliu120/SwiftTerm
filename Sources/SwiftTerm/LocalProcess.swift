@@ -128,7 +128,10 @@ public class LocalProcess {
     private let usesMainQueue: Bool
     private let pendingChunkFlushThreshold = 32
     private let pendingTimeSliceNs: UInt64 = 4_000_000
-    private let pendingDeliverySliceBytes = 16 * 1024
+    // Bound each main-queue parser invocation. The outer time budget cannot
+    // preempt one delegate call, so a smaller byte slice is what preserves
+    // AppKit input opportunities during sustained output.
+    private let pendingDeliverySliceBytes = 4 * 1024
     private var pendingBytes = PendingByteQueue()
     private var pendingScheduled = false
     private let pendingLock = NSLock()
