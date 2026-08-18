@@ -128,6 +128,7 @@ public class LocalProcess {
     private let usesMainQueue: Bool
     private let pendingChunkFlushThreshold = 32
     private let pendingTimeSliceNs: UInt64 = 4_000_000
+    private let pendingMainQueueYieldNs: UInt64 = 1_000_000
     // Bound each main-queue parser invocation. The outer time budget cannot
     // preempt one delegate call, so a smaller byte slice is what preserves
     // AppKit input opportunities during sustained output.
@@ -235,7 +236,10 @@ public class LocalProcess {
             }
 
             if DispatchTime.now().uptimeNanoseconds - start >= pendingTimeSliceNs {
-                dispatchQueue.async { [weak self] in
+                let deadline: DispatchTime = usesMainQueue
+                    ? .now() + .nanoseconds(Int(pendingMainQueueYieldNs))
+                    : .now()
+                dispatchQueue.asyncAfter(deadline: deadline) { [weak self] in
                     self?.drainReceivedData()
                 }
                 return
