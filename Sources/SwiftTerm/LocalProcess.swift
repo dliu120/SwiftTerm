@@ -99,6 +99,19 @@ struct PendingByteQueue {
     }
 }
 
+struct InteractiveParserYieldPolicy {
+    static let interactionWindowNs: UInt64 = 250_000_000
+    static let mainQueueYieldNs: UInt64 = 1_000_000
+
+    static func delayNs(
+        usesMainQueue: Bool, lastInputUptimeNs: UInt64, nowUptimeNs: UInt64
+    ) -> UInt64 {
+        guard usesMainQueue, lastInputUptimeNs > 0, nowUptimeNs >= lastInputUptimeNs,
+              nowUptimeNs - lastInputUptimeNs <= interactionWindowNs else { return 0 }
+        return mainQueueYieldNs
+    }
+}
+
 public class LocalProcess {
     let readSize = 128*1024
     
@@ -132,6 +145,7 @@ public class LocalProcess {
     private var pendingBytes = PendingByteQueue()
     private var pendingScheduled = false
     private let pendingLock = NSLock()
+    private var lastUserInputUptimeNs: UInt64 = 0
     // Backpressure for the main-queue delivery path: without it the read loop
     // re-arms unconditionally, so when the child produces output faster than
     // the consumer queue drains it, pendingChunks grows without bound (observed
@@ -232,7 +246,15 @@ public class LocalProcess {
             }
 
             if DispatchTime.now().uptimeNanoseconds - start >= pendingTimeSliceNs {
-                dispatchQueue.async { [weak self] in
+                let now = DispatchTime.now().uptimeNanoseconds
+                pendingLock.lock()
+                let delayNs = InteractiveParserYieldPolicy.delayNs(
+                    usesMainQueue: usesMainQueue,
+                    lastInputUptimeNs: lastUserInputUptimeNs,
+                    nowUptimeNs: now)
+                pendingLock.unlock()
+                dispatchQueue.asyncAfter(deadline: .now() + .nanoseconds(Int(delayNs))) {
+                    [weak self] in
                     self?.drainReceivedData()
                 }
                 return
@@ -249,6 +271,9 @@ public class LocalProcess {
         guard running else {
             return
         }
+        pendingLock.lock()
+        lastUserInputUptimeNs = DispatchTime.now().uptimeNanoseconds
+        pendingLock.unlock()
         let copy = sendCount
         sendCount += 1
         data.withUnsafeBytes { ptr in

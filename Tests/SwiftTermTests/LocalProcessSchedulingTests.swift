@@ -42,6 +42,31 @@ final class LocalProcessSchedulingTests: XCTestCase {
     XCTAssertEqual(queue.byteCount, 0)
     }
 
+  func testInteractiveParserYieldPolicyYieldsOnlyForRecentMainQueueInput() {
+    let recentInput = UInt64(1_000_000_000)
+
+    XCTAssertEqual(
+      InteractiveParserYieldPolicy.delayNs(
+        usesMainQueue: true, lastInputUptimeNs: recentInput,
+        nowUptimeNs: recentInput + 100_000_000),
+      1_000_000)
+    XCTAssertEqual(
+      InteractiveParserYieldPolicy.delayNs(
+        usesMainQueue: true, lastInputUptimeNs: recentInput,
+        nowUptimeNs: recentInput + 250_000_001),
+      0)
+    XCTAssertEqual(
+      InteractiveParserYieldPolicy.delayNs(
+        usesMainQueue: false, lastInputUptimeNs: recentInput,
+        nowUptimeNs: recentInput + 100_000_000),
+      0)
+    XCTAssertEqual(
+      InteractiveParserYieldPolicy.delayNs(
+        usesMainQueue: true, lastInputUptimeNs: 0,
+        nowUptimeNs: recentInput + 100_000_000),
+      0)
+  }
+
 #if os(macOS)
     @MainActor
     func testInteractiveMainThreadFeedDefersAndCoalescesDisplay() {
