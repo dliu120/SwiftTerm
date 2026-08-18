@@ -27,6 +27,11 @@ struct GlyphOut {
     float4 color;
 };
 
+struct VertexUniforms {
+    float2 viewport;
+    float2 translation;
+};
+
 constant float2 kQuadCorners[6] = {
     float2(0.0, 0.0),
     float2(1.0, 0.0),
@@ -38,10 +43,11 @@ constant float2 kQuadCorners[6] = {
 
 vertex GlyphOut terminal_text_vertex(uint vid [[vertex_id]],
                                      const device GlyphVertex *vertices [[buffer(0)]],
-                                     constant float2 &viewport [[buffer(1)]]) {
+                                     constant VertexUniforms &uniforms [[buffer(1)]]) {
     GlyphVertex v = vertices[vid];
-    float2 ndc = float2((v.position.x / viewport.x) * 2.0 - 1.0,
-                        (v.position.y / viewport.y) * 2.0 - 1.0);
+    float2 position = v.position + uniforms.translation;
+    float2 ndc = float2((position.x / uniforms.viewport.x) * 2.0 - 1.0,
+                        (position.y / uniforms.viewport.y) * 2.0 - 1.0);
     GlyphOut out;
     out.position = float4(ndc, 0.0, 1.0);
     out.texCoord = v.texCoord;
@@ -51,14 +57,14 @@ vertex GlyphOut terminal_text_vertex(uint vid [[vertex_id]],
 
 vertex GlyphOut terminal_cell_text_vertex(uint vid [[vertex_id]],
                                           const device TextCell *cells [[buffer(0)]],
-                                          constant float2 &viewport [[buffer(1)]]) {
+                                          constant VertexUniforms &uniforms [[buffer(1)]]) {
     uint cellIndex = vid / 6;
     uint cornerIndex = vid % 6;
     TextCell cell = cells[cellIndex];
     float2 corner = kQuadCorners[cornerIndex];
-    float2 position = cell.position + cell.size * corner;
-    float2 ndc = float2((position.x / viewport.x) * 2.0 - 1.0,
-                        (position.y / viewport.y) * 2.0 - 1.0);
+    float2 position = cell.position + cell.size * corner + uniforms.translation;
+    float2 ndc = float2((position.x / uniforms.viewport.x) * 2.0 - 1.0,
+                        (position.y / uniforms.viewport.y) * 2.0 - 1.0);
     GlyphOut out;
     out.position = float4(ndc, 0.0, 1.0);
     out.texCoord = cell.texOrigin + cell.texSize * corner;
@@ -92,10 +98,11 @@ struct ColorOut {
 
 vertex ColorOut terminal_color_vertex(uint vid [[vertex_id]],
                                       const device ColorVertex *vertices [[buffer(0)]],
-                                      constant float2 &viewport [[buffer(1)]]) {
+                                      constant VertexUniforms &uniforms [[buffer(1)]]) {
     ColorVertex v = vertices[vid];
-    float2 ndc = float2((v.position.x / viewport.x) * 2.0 - 1.0,
-                        (v.position.y / viewport.y) * 2.0 - 1.0);
+    float2 position = v.position + uniforms.translation;
+    float2 ndc = float2((position.x / uniforms.viewport.x) * 2.0 - 1.0,
+                        (position.y / uniforms.viewport.y) * 2.0 - 1.0);
     ColorOut out;
     out.position = float4(ndc, 0.0, 1.0);
     out.color = v.color;
@@ -104,14 +111,14 @@ vertex ColorOut terminal_color_vertex(uint vid [[vertex_id]],
 
 vertex ColorOut terminal_cell_color_vertex(uint vid [[vertex_id]],
                                            const device ColorCell *cells [[buffer(0)]],
-                                           constant float2 &viewport [[buffer(1)]]) {
+                                           constant VertexUniforms &uniforms [[buffer(1)]]) {
     uint cellIndex = vid / 6;
     uint cornerIndex = vid % 6;
     ColorCell cell = cells[cellIndex];
     float2 corner = kQuadCorners[cornerIndex];
-    float2 position = cell.position + cell.size * corner;
-    float2 ndc = float2((position.x / viewport.x) * 2.0 - 1.0,
-                        (position.y / viewport.y) * 2.0 - 1.0);
+    float2 position = cell.position + cell.size * corner + uniforms.translation;
+    float2 ndc = float2((position.x / uniforms.viewport.x) * 2.0 - 1.0,
+                        (position.y / uniforms.viewport.y) * 2.0 - 1.0);
     ColorOut out;
     out.position = float4(ndc, 0.0, 1.0);
     out.color = cell.color;
