@@ -2289,7 +2289,10 @@ extension TerminalView {
     /// Update visible area
     func updateDisplay (notifyAccessibility: Bool)
     {
-        defer { pendingDisplay = false }
+        defer {
+            pendingDisplay = false
+            pendingDisplayIsImmediate = false
+        }
         guard presentationActive else { return }
         if terminal.synchronizedOutputActive {
             return
@@ -2517,6 +2520,7 @@ extension TerminalView {
         presentationActive = active
         displayScheduleGeneration &+= 1
         pendingDisplay = false
+        pendingDisplayIsImmediate = false
 #if canImport(MetalKit)
         pendingMetalDisplay = false
         metalRenderer?.setPresentationActive(active)
@@ -2545,6 +2549,7 @@ extension TerminalView {
             // let fps30 = 16670000*2
             let fpsDelay = fps60
             pendingDisplay = true
+            pendingDisplayIsImmediate = false
             let generation = displayScheduleGeneration
             DispatchQueue.main.asyncAfter(
                 deadline: DispatchTime (uptimeNanoseconds: DispatchTime.now().uptimeNanoseconds + UInt64 (fpsDelay))) { [weak self] in
@@ -2808,7 +2813,7 @@ extension TerminalView {
         return lastUserInputUptimeNs
     }
 
-    private func displayImmediately() {
+    func displayImmediately() {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
                 self?.displayImmediately()
@@ -2818,8 +2823,13 @@ extension TerminalView {
         // Coalesce with both the throttled path and other interactive chunks.
         // Scheduling on the next main-loop turn keeps echo responsive while a
         // burst delivered in one parser slice produces only one display pass.
-        guard presentationActive, !pendingDisplay else { return }
+        guard presentationActive, !pendingDisplayIsImmediate else { return }
+        // Supersede a previously throttled display. The generation check makes
+        // its delayed callback inert while repeated interactive chunks still
+        // coalesce into this next-main-loop display.
+        displayScheduleGeneration &+= 1
         pendingDisplay = true
+        pendingDisplayIsImmediate = true
         let generation = displayScheduleGeneration
         DispatchQueue.main.async { [weak self] in
             guard let self, self.presentationActive,
