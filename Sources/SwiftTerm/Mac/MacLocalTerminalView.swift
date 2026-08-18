@@ -205,6 +205,7 @@ open class LocalProcessTerminalView: TerminalView, TerminalViewDelegate, LocalPr
      * Implements the LocalProcessDelegate.dataReceived method
      */
     open func dataReceived(slice: ArraySlice<UInt8>) {
+        interactionPresentationProfiler.observeOutput(slice)
         feed (byteArray: slice)
     }
     

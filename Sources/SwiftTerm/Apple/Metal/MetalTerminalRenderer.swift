@@ -389,6 +389,7 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
             frameSemaphore.signal()
             return
         }
+        let interactionFrame = terminalView.interactionPresentationProfiler.captureFrame()
 #if canImport(os)
         let buildID = OSSignpostID(log: MetalTerminalRenderer.profileLog)
         if MetalTerminalRenderer.profileEnabled {
@@ -559,6 +560,9 @@ final class MetalTerminalRenderer: NSObject, MTKViewDelegate {
         }
 #endif
         commandBuffer.present(drawable)
+        drawable.addPresentedHandler { [weak terminalView] _ in
+            terminalView?.interactionPresentationProfiler.presented(interactionFrame)
+        }
         bufferPool.commit(commandBuffer: commandBuffer)
         commandBuffer.commit()
 #if canImport(os)

@@ -218,6 +218,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     /// read from the (possibly background) feed thread.
     let userInputLock = NSLock()
     let interactiveInputDisplayWindowNs: UInt64 = 150_000_000
+    let interactionPresentationProfiler = InteractionPresentationProfiler()
 #if canImport(MetalKit)
     var metalView: MTKView?
     var metalRenderer: MetalTerminalRenderer?

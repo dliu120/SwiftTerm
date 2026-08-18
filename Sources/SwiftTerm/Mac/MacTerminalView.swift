@@ -224,6 +224,7 @@ open class TerminalView: NSView, NSTextInputClient, NSUserInterfaceValidations, 
     /// read from the (possibly background) feed thread.
     let userInputLock = NSLock()
     let interactiveInputDisplayWindowNs: UInt64 = 150_000_000
+    let interactionPresentationProfiler = InteractionPresentationProfiler()
 #if canImport(MetalKit)
     var metalView: MTKView?
     var metalRenderer: MetalTerminalRenderer?
@@ -1348,6 +1349,17 @@ open class TerminalView: NSView, NSTextInputClient, NSUserInterfaceValidations, 
 
     private var pendingKittyKeyEvent: PendingKittyKeyEvent?
     private var kittyIsComposing = false
+
+    /// Begins one deterministic, profiling-only synthetic key sample.
+    public func profileSyntheticKeyPosted() -> UInt64? {
+        interactionPresentationProfiler.postedSyntheticKey()
+    }
+
+    /// Marks delivery of a synthetic key previously returned by
+    /// `profileSyntheticKeyPosted()`.
+    public func profileSyntheticKeyReceived(_ token: UInt64) {
+        interactionPresentationProfiler.receivedSyntheticKey(token)
+    }
     
     //
     // We capture a handful of keydown events and pre-process those, and then let
