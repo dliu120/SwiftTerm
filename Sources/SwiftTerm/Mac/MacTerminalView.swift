@@ -208,6 +208,7 @@ open class TerminalView: NSView, NSTextInputClient, NSUserInterfaceValidations, 
     var debug: TerminalDebugView?
     var pendingDisplay: Bool = false
     var pendingDisplayIsImmediate = false
+    var displayCallbackGeneration: UInt64 = 0
     var presentationActive = true
     var displayScheduleGeneration: UInt64 = 0
     var textBlinkVisible = true

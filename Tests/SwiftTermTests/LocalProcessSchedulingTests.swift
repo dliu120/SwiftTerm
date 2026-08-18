@@ -59,16 +59,18 @@ final class LocalProcessSchedulingTests: XCTestCase {
     func testInteractiveDisplayPromotesPendingThrottledDisplay() {
         let view = TerminalView(frame: NSRect(x: 0, y: 0, width: 400, height: 240))
         view.queuePendingDisplay()
-        let throttledGeneration = view.displayScheduleGeneration
+        let scheduleGeneration = view.displayScheduleGeneration
+        let throttledCallbackGeneration = view.displayCallbackGeneration
 
         view.displayImmediately()
-        let promotedGeneration = view.displayScheduleGeneration
+        let promotedCallbackGeneration = view.displayCallbackGeneration
         view.displayImmediately()
 
         XCTAssertTrue(view.pendingDisplay)
         XCTAssertTrue(view.pendingDisplayIsImmediate)
-        XCTAssertEqual(promotedGeneration, throttledGeneration &+ 1)
-        XCTAssertEqual(view.displayScheduleGeneration, promotedGeneration)
+        XCTAssertEqual(promotedCallbackGeneration, throttledCallbackGeneration &+ 1)
+        XCTAssertEqual(view.displayCallbackGeneration, promotedCallbackGeneration)
+        XCTAssertEqual(view.displayScheduleGeneration, scheduleGeneration)
     }
 
     @MainActor

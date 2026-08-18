@@ -2519,6 +2519,7 @@ extension TerminalView {
         guard presentationActive != active else { return }
         presentationActive = active
         displayScheduleGeneration &+= 1
+        displayCallbackGeneration &+= 1
         pendingDisplay = false
         pendingDisplayIsImmediate = false
 #if canImport(MetalKit)
@@ -2550,11 +2551,13 @@ extension TerminalView {
             let fpsDelay = fps60
             pendingDisplay = true
             pendingDisplayIsImmediate = false
-            let generation = displayScheduleGeneration
+            let scheduleGeneration = displayScheduleGeneration
+            let callbackGeneration = displayCallbackGeneration
             DispatchQueue.main.asyncAfter(
                 deadline: DispatchTime (uptimeNanoseconds: DispatchTime.now().uptimeNanoseconds + UInt64 (fpsDelay))) { [weak self] in
                     guard let self, self.presentationActive,
-                          self.displayScheduleGeneration == generation else { return }
+                          self.displayScheduleGeneration == scheduleGeneration,
+                          self.displayCallbackGeneration == callbackGeneration else { return }
                     self.updateDisplay()
                 }
         } else {
@@ -2827,13 +2830,15 @@ extension TerminalView {
         // Supersede a previously throttled display. The generation check makes
         // its delayed callback inert while repeated interactive chunks still
         // coalesce into this next-main-loop display.
-        displayScheduleGeneration &+= 1
+        displayCallbackGeneration &+= 1
         pendingDisplay = true
         pendingDisplayIsImmediate = true
-        let generation = displayScheduleGeneration
+        let scheduleGeneration = displayScheduleGeneration
+        let callbackGeneration = displayCallbackGeneration
         DispatchQueue.main.async { [weak self] in
             guard let self, self.presentationActive,
-                  self.displayScheduleGeneration == generation else { return }
+                  self.displayScheduleGeneration == scheduleGeneration,
+                  self.displayCallbackGeneration == callbackGeneration else { return }
             self.updateDisplay()
         }
     }

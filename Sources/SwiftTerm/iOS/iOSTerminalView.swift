@@ -201,6 +201,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     var debug: UIView?
     var pendingDisplay: Bool = false
     var pendingDisplayIsImmediate = false
+    var displayCallbackGeneration: UInt64 = 0
     var presentationActive = true
     var displayScheduleGeneration: UInt64 = 0
     var textBlinkVisible = true
